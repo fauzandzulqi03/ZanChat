@@ -1,0 +1,28 @@
+{
+  "name": "zanchat",
+  "version": "1.0.0",
+  "description": "ZanChat - Aplikasi Web Real-Time Chat menggunakan Node.js dan Socket.IO",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/test-zanchat.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "chat",
+    "realtime",
+    "socket.io",
+    "express",
+    "nodejs"
+  ],
+  "author": "Fauzan",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.3.0",
+    "socket.io": "^4.8.4"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
+  }
+}

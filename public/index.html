@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+  <title>ZanChat - Real-Time Web Chat Application</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- Socket.IO Client Library served automatically by Socket.IO server -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <!-- Container Aplikasi -->
+  <div id="app" class="app-root">
+
+    <!-- 1. Halaman Utama / Landing Page (Full-Screen Hero) -->
+    <section id="landing-page" class="view landing-view">
+      <!-- Header Top Bar dengan Branding di Pojok Kiri Atas -->
+      <header class="landing-header">
+        <div class="landing-brand branding-top">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="40" height="40" rx="10" fill="#2563eb"/>
+              <path d="M12 15C12 13.3431 13.3431 12 15 12H25C26.6569 12 28 13.3431 28 15V22C28 23.6569 26.6569 25 25 25H18L13 29V24.5C12.4 23.9 12 23 12 22V15Z" fill="#ffffff"/>
+              <circle cx="17" cy="18.5" r="1.5" fill="#2563eb"/>
+              <circle cx="21" cy="18.5" r="1.5" fill="#2563eb"/>
+              <circle cx="25" cy="18.5" r="1.5" fill="#2563eb"/>
+            </svg>
+          </div>
+          <span class="brand-name">ZanChat</span>
+        </div>
+      </header>
+
+      <!-- Hero Section Tengah Layar -->
+      <main class="hero-section">
+        <div class="hero-container">
+          <h1 class="hero-main-title">Obrolan Real-Time yang Cepat, Bersih, dan Terbuka.</h1>
+          <p class="hero-main-desc">
+            ZanChat menghubungkan Anda dengan rekan secara instan melalui koneksi persisten dua arah. Kirim dan terima pesan tanpa jeda, pantau kehadiran pengguna aktif, serta nikmati komunikasi yang lancar tanpa perlu memuat ulang halaman.
+          </p>
+          <div class="hero-actions">
+            <button type="button" id="btn-start-chat" class="btn btn-primary btn-cta">
+              <span>Mulai Obrolan</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </main>
+
+      <!-- Modal / Pop-up Masuk Nama Pengguna -->
+      <div id="login-modal" class="login-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div id="login-modal-backdrop" class="modal-backdrop"></div>
+        <div class="modal-card">
+          <div class="modal-header">
+            <div class="modal-header-text">
+              <h2 id="modal-title" class="modal-title">Masuk ke ZanChat</h2>
+              <p id="modal-subtitle" class="modal-subtitle">Masukkan nama tampilan Anda untuk bergabung ke ruang obrolan.</p>
+            </div>
+            <button type="button" id="btn-close-modal" class="btn-icon btn-close-modal" title="Tutup Modal" aria-label="Tutup Modal">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Form Sederhana: 1 Kolom Input Nama & Tombol MASUK -->
+          <form id="login-form" class="login-form" autocomplete="off" onsubmit="return false;">
+            <div class="form-group">
+              <label for="username-input" class="form-label">Nama Pengguna (Display Name)</label>
+              <div class="input-wrapper">
+                <input
+                  type="text"
+                  id="username-input"
+                  class="form-input"
+                  placeholder="Contoh: Fauzan"
+                  maxlength="30"
+                  autocomplete="nickname"
+                  spellcheck="false"
+                  required
+                >
+              </div>
+            </div>
+
+            <div id="login-error" class="form-error" role="alert" aria-live="polite"></div>
+
+            <button type="submit" id="btn-login" class="btn btn-primary btn-block">
+              MASUK
+            </button>
+          </form>
+
+          <div class="form-footnote">
+            Dengan masuk, nama Anda akan terlihat secara real-time oleh anggota lain di server obrolan.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Dashboard Chat Utama -->
+    <section id="chat-app" class="view chat-view hidden" aria-hidden="true">
+      <div id="dashboard-layout" class="dashboard-layout">
+
+        <!-- Backdrop Overlay untuk Mobile Drawer -->
+        <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+        <!-- Sidebar Kiri: Online Users -->
+        <aside id="sidebar-users" class="sidebar-users">
+          <div class="sidebar-header">
+            <div class="sidebar-brand">
+              <div class="brand-mark" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="40" height="40" rx="10" fill="#2563eb"/>
+                  <path d="M12 15C12 13.3431 13.3431 12 15 12H25C26.6569 12 28 13.3431 28 15V22C28 23.6569 26.6569 25 25 25H18L13 29V24.5C12.4 23.9 12 23 12 22V15Z" fill="#ffffff"/>
+                  <circle cx="17" cy="18.5" r="1.5" fill="#2563eb"/>
+                  <circle cx="21" cy="18.5" r="1.5" fill="#2563eb"/>
+                  <circle cx="25" cy="18.5" r="1.5" fill="#2563eb"/>
+                </svg>
+              </div>
+              <span class="sidebar-title">ZanChat</span>
+            </div>
+            <!-- Actions di Sidebar Header: Tutup Sidebar di Mobile -->
+            <div class="sidebar-header-actions">
+              <button type="button" id="btn-close-sidebar" class="btn-icon btn-close-sidebar" title="Tutup Sidebar" aria-label="Tutup Sidebar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Informasi User Sendiri -->
+          <div class="current-user-card">
+            <div class="user-avatar user-avatar-me">
+              <span id="current-user-initial">U</span>
+            </div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Pengguna</span>
+              <span class="user-status-text">
+                <span class="status-indicator-dot online"></span>
+                Online (Anda)
+              </span>
+            </div>
+          </div>
+
+          <!-- Seksi Navigasi Obrolan (Umum & Grup) -->
+          <div class="chat-rooms-section">
+            <div class="users-section-header">
+              <span class="users-section-title">Obrolan</span>
+            </div>
+            <ul id="rooms-nav-list" class="rooms-nav-list" aria-label="Daftar Obrolan">
+              <li id="nav-room-public" class="room-nav-item active" data-room="public">
+                <span class="room-nav-icon">🌐</span>
+                <span class="room-nav-name">Obrolan Umum</span>
+                <span class="room-nav-badge">UMUM</span>
+              </li>
+              <li id="nav-room-group" class="room-nav-item hidden" style="display: none;" data-room="group">
+                <span class="room-nav-icon">👥</span>
+                <span id="nav-group-name" class="room-nav-name">Nama Grup</span>
+                <span class="room-nav-badge is-group">GRUP</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Header Daftar Pengguna Aktif -->
+          <div class="users-section-header">
+            <span class="users-section-title">Pengguna Aktif</span>
+            <span id="active-users-count" class="users-count-badge">0</span>
+          </div>
+
+          <!-- Daftar Pengguna Online -->
+          <div class="users-list-container">
+            <ul id="users-list" class="users-list" aria-label="Daftar Pengguna Online">
+              <!-- Item pengguna diinjeksi via JavaScript -->
+            </ul>
+          </div>
+
+          <!-- Footer Sidebar: Aksi Grup (50:50) & Tombol Keluar (Logout) -->
+          <div class="sidebar-footer">
+            <div class="sidebar-group-actions">
+              <button type="button" id="btn-open-create-group" class="btn btn-group-action" title="Buat Grup Baru" aria-label="Buat Grup Baru">
+                <span>+ Buat Grup</span>
+              </button>
+              <button type="button" id="btn-open-join-group" class="btn btn-group-action" title="Gabung Grup via Kode" aria-label="Gabung Grup">
+                <span>🔑 Gabung Grup</span>
+              </button>
+            </div>
+            <button type="button" id="btn-logout" class="btn btn-logout-action" title="Keluar dari ruang obrolan" aria-label="Keluar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              <span>Keluar</span>
+            </button>
+          </div>
+        </aside>
+
+        <!-- Area Obrolan Tengah (Main Chat Panel) -->
+        <main class="main-chat-panel">
+          
+          <!-- Header Chat Panel -->
+          <header class="chat-header">
+            <div class="chat-header-main">
+              <!-- Tombol Toggle Sidebar (Menu / Hamburger Icon) -->
+              <button type="button" id="btn-toggle-sidebar" class="btn-icon btn-toggle-sidebar" title="Buka/Tutup Sidebar" aria-label="Buka atau Tutup Sidebar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="3" y1="12" x2="21" y2="12"></line>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+              </button>
+
+              <!-- Informasi Ruang Obrolan -->
+              <div class="room-details">
+                <div class="room-title-wrapper">
+                  <h2 id="room-title" class="room-title">Ruang Obrolan Publik</h2>
+                  <span id="room-badge" class="room-badge">Umum</span>
+                </div>
+                <p id="room-desc" class="room-subtitle">Saluran publik untuk seluruh pengguna yang terhubung di jaringan.</p>
+              </div>
+            </div>
+            
+            <div class="chat-header-actions">
+              <button type="button"
+                      id="btn-leave-group"
+                      class="btn btn-leave-group hidden"
+                      style="display: none;"
+                      title="Kembali ke Ruang Publik">
+                Tinggalkan Grup
+              </button>
+              <div class="connection-status">
+                <span id="conn-status-dot" class="status-indicator-dot online"></span>
+                <span id="conn-status-text" class="status-label">Terhubung</span>
+              </div>
+            </div>
+          </header>
+
+          <!-- Area Pesan (Scrollable Message List) -->
+          <div id="messages-container" class="messages-container chat-messages" role="log" aria-live="polite">
+            <!-- Pesan chat & notifikasi sistem diinjeksi di sini via JavaScript -->
+          </div>
+
+          <!-- Typing Indicator Bar -->
+          <div id="typing-indicator-bar" class="typing-indicator-bar" aria-live="polite">
+            <div class="typing-content">
+              <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <span id="typing-text" class="typing-text">Seseorang sedang mengetik...</span>
+            </div>
+          </div>
+
+          <!-- Panel Input Pesan -->
+          <footer class="chat-input-panel">
+            <form id="message-form" class="message-form" autocomplete="off" onsubmit="return false;">
+              <div class="input-container">
+                <input
+                  type="text"
+                  id="message-input"
+                  class="message-input"
+                  placeholder="Ketik pesan Anda..."
+                  maxlength="2000"
+                  spellcheck="false"
+                  required
+                >
+                <button type="submit" id="btn-send" class="btn btn-primary btn-send" aria-label="Kirim Pesan">
+                  <span>Kirim</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </footer>
+
+        </main>
+
+      </div>
+    </section>
+
+    <!-- 3. Modal Buat Grup Baru -->
+    <div id="modal-create-group" class="login-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-create-group-title">
+      <div id="backdrop-create-group" class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-header-text">
+            <h2 id="modal-create-group-title" class="modal-title">Buat Grup Baru</h2>
+            <p class="modal-subtitle">Buat ruang obrolan grup dan dapatkan kode unik untuk dibagikan.</p>
+          </div>
+          <button type="button" id="btn-close-create-group" class="btn-icon btn-close-modal" title="Tutup Modal" aria-label="Tutup Modal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <form id="form-create-group" class="login-form" autocomplete="off" onsubmit="return false;">
+          <div class="form-group">
+            <label for="input-group-name" class="form-label">Nama Grup</label>
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="input-group-name"
+                class="form-input"
+                placeholder="Contoh: Kelompok Sispar"
+                maxlength="50"
+                required
+              >
+            </div>
+          </div>
+
+          <div id="error-create-group" class="form-error" role="alert" aria-live="polite"></div>
+
+          <button type="submit" id="btn-submit-create-group" class="btn btn-primary btn-block">
+            Buat Grup
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 4. Modal Gabung Grup via Kode -->
+    <div id="modal-join-group" class="login-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-join-group-title">
+      <div id="backdrop-join-group" class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-header-text">
+            <h2 id="modal-join-group-title" class="modal-title">Gabung Grup via Kode</h2>
+            <p class="modal-subtitle">Masukkan kode grup unik 6 karakter dari pembuat grup.</p>
+          </div>
+          <button type="button" id="btn-close-join-group" class="btn-icon btn-close-modal" title="Tutup Modal" aria-label="Tutup Modal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <form id="form-join-group" class="login-form" autocomplete="off" onsubmit="return false;">
+          <div class="form-group">
+            <label for="input-group-code" class="form-label">Kode Akses Grup</label>
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="input-group-code"
+                class="form-input"
+                placeholder="Contoh: ZAN892"
+                maxlength="10"
+                style="text-transform: uppercase; font-family: monospace; letter-spacing: 0.1em;"
+                required
+              >
+            </div>
+          </div>
+
+          <div id="error-join-group" class="form-error" role="alert" aria-live="polite"></div>
+
+          <button type="submit" id="btn-submit-join-group" class="btn btn-primary btn-block">
+            Gabung Grup
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 5. Modal Konfirmasi Kode Grup Berhasil Dibuat -->
+    <div id="modal-group-created" class="login-modal hidden" aria-hidden="true" role="dialog" aria-modal="true">
+      <div id="backdrop-group-created" class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-header-text">
+            <h2 class="modal-title">Grup Berhasil Dibuat!</h2>
+            <p class="modal-subtitle">Bagikan kode akses 6 karakter ini kepada rekan Anda untuk bergabung:</p>
+          </div>
+          <button type="button" id="btn-close-group-created" class="btn-icon btn-close-modal" title="Tutup Modal" aria-label="Tutup">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="group-created-body">
+          <div id="created-group-name-display" class="group-created-name">Nama Grup</div>
+          <div class="group-created-code-row">
+            <div id="created-group-code-display" class="group-created-code">ZAN000</div>
+            <button type="button" id="btn-copy-created-code" class="btn-copy-mono" title="Salin Kode Akses" aria-label="Salin Kode Akses">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+          <div id="copy-feedback-msg" class="copy-feedback-msg"></div>
+        </div>
+        <button type="button" id="btn-ack-group-created" class="btn btn-primary btn-block">
+          Mulai Obrolan Grup
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
